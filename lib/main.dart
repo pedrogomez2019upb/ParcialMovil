@@ -7,6 +7,8 @@ import 'package:jwt_decoder/jwt_decoder.dart';
 
 void main() => runApp(MyApp());
 dynamic favoritosGlobal;
+dynamic usuario;
+dynamic articulosGlobal;
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -255,21 +257,35 @@ class buttonStyle extends StatelessWidget {
   }
 
   void esFavorito(){
-    print('Start of problem');
+    print(usuario);
+    print('Tipo dato global');
+    print(favoritosGlobal.runtimeType);
     print(favoritosGlobal);
     List favoritosJSON=jsonDecode(favoritosGlobal);
+    print('Tipo dato interno');
+    print(favoritosJSON.runtimeType);
     dynamic resultado= findItemByName(favoritosJSON, nombre);
     print(nombre);
     print(resultado);
-    if(resultado.toString()!="{}"){
 
+    if(resultado.toString()!="{}"){
+      print("Lo tienes");
+      favoritosJSON.remove(resultado);
       //favoritosJSON.remove(resultado);
+      updateFavorites(usuario, favoritosJSON.toString());
       print("El objeto fue retirado");
-      //favoritosGlobal=favoritosJSON;
-      //favoritosGlobal=favoritosJSON;
       print(favoritosJSON);
+      //favoritosGlobal=favoritosJSON;
+      //favoritosGlobal=favoritosJSON.toString();
+      print(favoritosJSON);
+
     }
     else{
+      print("No lo tienes");
+      dynamic resultado1= findItemByName(articulosGlobal, nombre);
+      print(resultado1);
+      favoritosJSON.add(resultado1.toString());
+      updateFavorites(usuario, favoritosJSON.toString());
       //favoritosJSON.add(resultado);
       print("El objeto fue agregado");
 
@@ -277,6 +293,50 @@ class buttonStyle extends StatelessWidget {
 
 
   }
+  Future<void> updateFavorites(String userId, String favorites) async {
+    // construct the URL for the update request
+    final url = Uri.parse('http://learnpro.bucaramanga.upb.edu.co:3005/user/updateProduct/$userId');
+    String favoritesInterno = "favorites";
+    // create a Map with the request body
+    final favoritesEncode=jsonEncode(favorites);
+    print("Mensaje a mandar:");
+    print(favoritesEncode);
+    final body = {"favorites": favoritesEncode};
+
+    print("El cuerpo:");
+    print(body);
+    final bodyFinal=jsonEncode(body);
+    print("bodyFinal:");
+    print(bodyFinal);
+
+    try {
+      // send the PATCH request to the API
+      final response = await http.patch(url,
+          headers: {'Content-Type': 'application/json'}, body: bodyFinal);
+      print("El fainal:");
+      print(response);
+
+      // check if the request was successful (status code 2xx)
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // parse the JSON response and print it
+        final jsonResponse = json.decode(response.body);
+        print("Info BBDD:");
+        print(jsonResponse);
+      } else {
+        // request failed, print the status code and message
+        print('Request failed with status ${response.statusCode}: ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      // an error occurred while sending the request, print it
+      print('An error occurred: $e');
+    }
+  }
+  //To use this function, simply call it with the user ID and the new favorites string:
+  //This should send a PATCH request to the API with the updated favorites for the specified user ID, and print the response from the API. Note that you'll need to have the http package installed in your project for this to work.
+
+
+
+
 
 
 }
@@ -287,6 +347,7 @@ class _SecondPageState extends State<SecondPage> {
     super.initState();
     generadorAPI();
     getUserFavorites(widget.userId);
+    //usuario=widget.userId;
     //print("Impresion");
     //print(favoritos);
     //favoritosGlobal=getUserFavorites(widget.userId);
@@ -300,6 +361,7 @@ class _SecondPageState extends State<SecondPage> {
 
   Future<dynamic> getUserFavorites(String objectId) async {
     final response = await http.get(Uri.parse('http://learnpro.bucaramanga.upb.edu.co:3005/user/get/$objectId'));
+    usuario=objectId;
     if (response.statusCode == 200) {
       final decodedJson = json.decode(response.body);
       final favorites = decodedJson['favorites'];
@@ -367,6 +429,7 @@ class _SecondPageState extends State<SecondPage> {
 
 
       dynamic datosJSONAPI = jsonDecode(utf8.decode(requestResponse.bodyBytes));
+      articulosGlobal=datosJSONAPI;
       //print(datosJSONAPI);
       if (datosJSONAPI.isNotEmpty) {
         lista = ListView.builder(
@@ -525,7 +588,55 @@ class _ThirdPageState extends State<ThirdPage>{
 
 
        */
+      print(widget.userId);
       dynamic datosJSONAPI = jsonDecode(widget.userId);
+      //print(datosJSONAPI);
+      if (datosJSONAPI.isNotEmpty) {
+        lista = ListView.builder(
+          itemCount: datosJSONAPI.length,
+          itemBuilder: (context, index) {
+            dynamic elemento = datosJSONAPI[index];
+            return buttonStyle(
+              elemento["imagen"],
+              elemento["nombre"],
+              elemento["vendedor"],
+              elemento["calificacion"],
+            );
+          },
+        );
+        await Future.delayed(Duration(seconds: 1));
+        setState(() {
+          // Call setState to refresh the widget once
+        });
+      } else {
+        generadorAPI();
+      }
+    } catch (e) {
+
+      print('Error:' + e.toString());
+    }
+  }
+  Future<dynamic> generadorAPIMONGO() async {
+
+    try {
+      /*
+      final requestResponse = await http.get(
+        Uri.parse('http://learnpro.bucaramanga.upb.edu.co:3005/articles/get'),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      ).timeout(Duration(seconds: 3));
+
+
+
+       */
+      print(widget.userId);
+      print(favoritosGlobal.runtimeType);
+      //List<dynamic> datosJSONAPI = jsonDecode(favoritosGlobal);
+      //final miString = favoritosGlobal.substring(1, favoritosGlobal.length - 1);
+      //String datosJSONAPI = JsonEncoder.withIndent('  ').convert(miString);
+      List<dynamic> datosJSONAPI = json.decode(favoritosGlobal);
+      print("Datos convertidos");
+      print(datosJSONAPI);
+      //dynamic datosJSONAPI = favoritosGlobal.toString();
       //print(datosJSONAPI);
       if (datosJSONAPI.isNotEmpty) {
         lista = ListView.builder(
@@ -554,7 +665,7 @@ class _ThirdPageState extends State<ThirdPage>{
   }
   @override
   Widget build(BuildContext context) {
-    generadorAPI();
+    generadorAPIMONGO();
     return Scaffold(
       appBar: AppBar(
         title: Text("Favoritos"),
